@@ -1,0 +1,74 @@
+name: FHIR Test Data
+description: Download a public FHIR test data set from ghcr.io/life-research/fhir-test-data
+author: life-research
+
+inputs:
+  set:
+    description: Data set name, a directory below datasets/ (e.g. kds, synthea-1000)
+    required: true
+  path:
+    description: Directory to download into, must be empty or absent
+    required: true
+  patients:
+    description: Chunked sets only. Number of patients, must be a chunk boundary (kds 100, 1000 or 10000). Defaults to the smallest.
+    required: false
+    default: ""
+  version:
+    description: Published version. Defaults to the latest version pinned by this action's commit.
+    required: false
+    default: ""
+  cache:
+    description: Cache the downloaded data with actions/cache, keyed on digest and patient count
+    required: false
+    default: "false"
+
+outputs:
+  digest:
+    description: Manifest digest of the downloaded data set
+    value: ${{ steps.resolve.outputs.digest }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve Digest
+      id: resolve
+      shell: bash
+      env:
+        SET: ${{ inputs.set }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        digest="$("${GITHUB_ACTION_PATH}/scripts/digest.sh" "${SET}" "${VERSION}")"
+        echo "digest=${digest}" >>"${GITHUB_OUTPUT}"
+
+    - name: Cache Test Data
+      if: inputs.cache == 'true'
+      id: cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ inputs.path }}
+        key: fhir-test-data-${{ inputs.set }}-${{ inputs.patients }}-${{ steps.resolve.outputs.digest }}
+
+    - name: Setup ORAS
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: oras-project/setup-oras@005458ad77f1c8facd38a094e4af2e69e5607ff4 # v2.0.2
+      with:
+        version: 1.3.6
+
+    - name: Pull Test Data
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        SET: ${{ inputs.set }}
+        DEST: ${{ inputs.path }}
+        PATIENTS: ${{ inputs.patients }}
+        VERSION: ${{ inputs.version }}
+      run: '"${GITHUB_ACTION_PATH}/scripts/pull.sh" "${SET}" "${DEST}" "${PATIENTS}" "${VERSION}"'
+
+    - name: Verify Cached Test Data
+      if: steps.cache.outputs.cache-hit == 'true'
+      shell: bash
+      env:
+        SET: ${{ inputs.set }}
+        DEST: ${{ inputs.path }}
+        PATIENTS: ${{ inputs.patients }}
+      run: '"${GITHUB_ACTION_PATH}/scripts/verify.sh" "${SET}" "${DEST}" "${PATIENTS}"'
