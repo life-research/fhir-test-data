@@ -108,3 +108,15 @@ run_lib() {
   [ "${status}" -eq 0 ]
   [ "${output}" == "sha256:$(printf '%064d' 1)" ]
 }
+
+@test "verify.sh handles more patients in authored.json than requested" {
+  build_fixtures "${BUILD_DIR}"
+  dir="${BUILD_DIR}/fixture-chunked"
+  # Enough extra keys to exceed the pipe buffer of a truncating reader.
+  jq '. + ([range(20000)] | map({key: "extra-\(.)", value: ""}) | from_entries)' \
+    "${dir}/authored.json" >"${BATS_TEST_TMPDIR}/authored.json"
+  mv "${BATS_TEST_TMPDIR}/authored.json" "${dir}/authored.json"
+  rm "${dir}"/kds/p-0[18].json.gz "${dir}"/kds/p-0[3-6].json.gz
+  run "${SCRIPTS_DIR}/verify.sh" fixture-chunked "${dir}" 3
+  [ "${status}" -eq 0 ]
+}

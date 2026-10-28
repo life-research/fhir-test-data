@@ -134,8 +134,12 @@ base_files() {
   printf '%s\n' "${AUTHORED_FILE}" "${extra_files[@]}"
 }
 
+# Prints the keys of authored.json in order, optionally only the first <limit>.
 patient_keys() {
-  jq -r 'keys_unsorted[]' "$1/${AUTHORED_FILE}"
+  local dir="$1" limit="${2:-}"
+  jq -r --arg limit "${limit}" \
+    'keys_unsorted | if $limit == "" then . else .[:($limit | tonumber)] end | .[]' \
+    "${dir}/${AUTHORED_FILE}"
 }
 
 patient_file() {
@@ -150,7 +154,7 @@ verify_chunked_dir() {
     [[ -f "${dir}/${file}" ]] || die "${dir}/${file} missing"
   done < <(base_files)
 
-  expected="$(patient_keys "${dir}" | head -n "${patients}" | LC_ALL=C sort)"
+  expected="$(patient_keys "${dir}" "${patients}" | LC_ALL=C sort)"
   actual="$(LC_ALL=C comm -12 \
     <(patient_keys "${dir}" | LC_ALL=C sort) \
     <(find "${dir}/${PATIENT_DIR}" -maxdepth 1 -name '*.json.gz' -printf '%f\n' \
