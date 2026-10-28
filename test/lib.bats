@@ -120,3 +120,18 @@ run_lib() {
   run "${SCRIPTS_DIR}/verify.sh" fixture-chunked "${dir}" 3
   [ "${status}" -eq 0 ]
 }
+
+@test "generic environment variables do not affect configuration" {
+  run env -u FHIR_TEST_DATA_DATASETS_DIR -u FHIR_TEST_DATA_BUILD_DIR -u FHIR_TEST_DATA_OUT_DIR \
+    REGISTRY=ghcr.io/example/unrelated PLAIN_HTTP=true \
+    DATASETS_DIR=/nonexistent BUILD_DIR=/nonexistent OUT_DIR=/nonexistent \
+    bash -c "source '${SCRIPTS_DIR}/lib.sh'; printf '%s\n' \"\${REGISTRY}\" \"\${PLAIN_HTTP}\" \"\${DATASETS_DIR}\" \"\${BUILD_DIR}\" \"\${OUT_DIR}\""
+  root="$(cd "${SCRIPTS_DIR}/.." && pwd)"
+  [ "${output}" == "ghcr.io/life-research/fhir-test-data"$'\n'"false"$'\n'"${root}/datasets"$'\n'"${root}/build"$'\n'"${root}/out" ]
+}
+
+@test "prefixed environment variables configure the scripts" {
+  run env FHIR_TEST_DATA_REGISTRY=localhost:5000/x FHIR_TEST_DATA_PLAIN_HTTP=true \
+    bash -c "source '${SCRIPTS_DIR}/lib.sh'; artifact_repo kds; oras_flags; echo \"\${DATASETS_DIR}\""
+  [ "${output}" == "localhost:5000/x/kds"$'\n'"--plain-http"$'\n'"${DATASETS_DIR}" ]
+}

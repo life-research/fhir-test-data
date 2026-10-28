@@ -54,10 +54,16 @@ jobs:
         ports:
         - 5000:5000
     env:
-      DATASETS_DIR: ${{ github.workspace }}/test/fixtures/datasets
-      BUILD_DIR: ${{ github.workspace }}/build
-      REGISTRY: localhost:5000/fhir-test-data
-      PLAIN_HTTP: "true"
+      FHIR_TEST_DATA_DATASETS_DIR: ${{ github.workspace }}/test/fixtures/datasets
+      FHIR_TEST_DATA_BUILD_DIR: ${{ github.workspace }}/build
+      FHIR_TEST_DATA_REGISTRY: localhost:5000/fhir-test-data
+      FHIR_TEST_DATA_PLAIN_HTTP: "true"
+      # Generic names as set by calling workflows must not affect the action.
+      REGISTRY: ghcr.io/example/unrelated
+      DATASETS_DIR: /nonexistent
+      BUILD_DIR: /nonexistent
+      OUT_DIR: /nonexistent
+      PLAIN_HTTP: "false"
     steps:
     - name: Check out Git repository
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

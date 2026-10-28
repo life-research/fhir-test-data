@@ -15,8 +15,9 @@ setup_file() {
 setup() {
   setup_dirs
   build_fixtures "${BUILD_DIR}"
-  export PLAIN_HTTP=true
-  export REGISTRY="${TEST_REGISTRY}/test-${BATS_ROOT_PID}-${BATS_SUITE_TEST_NUMBER}"
+  REGISTRY="${TEST_REGISTRY}/test-${BATS_ROOT_PID}-${BATS_SUITE_TEST_NUMBER}"
+  export FHIR_TEST_DATA_PLAIN_HTTP=true
+  export FHIR_TEST_DATA_REGISTRY="${REGISTRY}"
 }
 
 publish() {
@@ -67,7 +68,7 @@ patient_files_in() {
 }
 
 @test "push fails if the registry cannot be checked" {
-  export REGISTRY="localhost:1/unreachable"
+  export FHIR_TEST_DATA_REGISTRY="localhost:1/unreachable"
   run publish fixture-chunked v1
   [ "${status}" -ne 0 ]
   [[ "${output}" == *"cannot check whether"* ]]
@@ -115,6 +116,13 @@ patient_files_in() {
   rm -rf "$(pulled)"
   "${SCRIPTS_DIR}/pull.sh" fixture-chunked "$(pulled)"
   [ "$(zcat "$(pulled)/kds/hospitalInformation.json.gz")" == '{"resourceType":"Bundle","id":"hospital-v2"}' ]
+}
+
+@test "pull ignores a generic REGISTRY of the calling environment" {
+  publish fixture-chunked v1
+  REGISTRY=ghcr.io/example/unrelated run "${SCRIPTS_DIR}/pull.sh" fixture-chunked "$(pulled)"
+  [ "${status}" -eq 0 ]
+  [[ "${output}" == *"Pulling ${REGISTRY}/fixture-chunked@sha256:"* ]]
 }
 
 @test "pull rejects unsupported patient counts" {

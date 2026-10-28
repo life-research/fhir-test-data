@@ -4,11 +4,13 @@
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-DATASETS_DIR="${DATASETS_DIR:-${ROOT_DIR}/datasets}"
-BUILD_DIR="${BUILD_DIR:-${ROOT_DIR}/build}"
-OUT_DIR="${OUT_DIR:-${ROOT_DIR}/out}"
-REGISTRY="${REGISTRY:-ghcr.io/life-research/fhir-test-data}"
-PLAIN_HTTP="${PLAIN_HTTP:-false}"
+# Configuration from the environment is prefixed, so that generic variables
+# of a calling workflow (e.g. REGISTRY) cannot redirect the scripts.
+DATASETS_DIR="${FHIR_TEST_DATA_DATASETS_DIR:-${ROOT_DIR}/datasets}"
+BUILD_DIR="${FHIR_TEST_DATA_BUILD_DIR:-${ROOT_DIR}/build}"
+OUT_DIR="${FHIR_TEST_DATA_OUT_DIR:-${ROOT_DIR}/out}"
+REGISTRY="${FHIR_TEST_DATA_REGISTRY:-ghcr.io/life-research/fhir-test-data}"
+PLAIN_HTTP="${FHIR_TEST_DATA_PLAIN_HTTP:-false}"
 
 readonly ARTIFACT_TYPE="application/vnd.life-research.fhir-test-data.v1"
 readonly SOURCE_URL="https://github.com/life-research/fhir-test-data"
